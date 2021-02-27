@@ -32,6 +32,7 @@ const DATA_KEY = 'bs.modal'
 const EVENT_KEY = `.${DATA_KEY}`
 const DATA_API_KEY = '.data-api'
 const ESCAPE_KEY = 'Escape'
+const TAB_KEY = 'Tab'
 
 const Default = {
   backdrop: true,
@@ -53,6 +54,7 @@ const EVENT_SHOWN = `shown${EVENT_KEY}`
 const EVENT_FOCUSIN = `focusin${EVENT_KEY}`
 const EVENT_RESIZE = `resize${EVENT_KEY}`
 const EVENT_CLICK_DISMISS = `click.dismiss${EVENT_KEY}`
+const EVENT_KEYDOWN_TAB = `keydown.tab${EVENT_KEY}`
 const EVENT_KEYDOWN_DISMISS = `keydown.dismiss${EVENT_KEY}`
 const EVENT_MOUSEUP_DISMISS = `mouseup.dismiss${EVENT_KEY}`
 const EVENT_MOUSEDOWN_DISMISS = `mousedown.dismiss${EVENT_KEY}`
@@ -72,6 +74,9 @@ const SELECTOR_DATA_DISMISS = '[data-bs-dismiss="modal"]'
 const SELECTOR_FIXED_CONTENT = '.fixed-top, .fixed-bottom, .is-fixed, .sticky-top'
 const SELECTOR_STICKY_CONTENT = '.sticky-top'
 
+const TAB_NAV_FORWARD = 'forward'
+const TAB_NAV_BACKWARD = 'backward'
+
 /**
  * ------------------------------------------------------------------------
  * Class Definition
@@ -90,6 +95,7 @@ class Modal extends BaseComponent {
     this._ignoreBackdropClick = false
     this._isTransitioning = false
     this._scrollbarWidth = 0
+    this._lastTabNavDirection = null
   }
 
   // Getters
@@ -132,6 +138,7 @@ class Modal extends BaseComponent {
 
     this._adjustDialog()
 
+    this._setTabNavEvent()
     this._setEscapeEvent()
     this._setResizeEvent()
 
@@ -170,6 +177,7 @@ class Modal extends BaseComponent {
       this._isTransitioning = true
     }
 
+    this._setTabNavEvent()
     this._setEscapeEvent()
     this._setResizeEvent()
 
@@ -284,9 +292,31 @@ class Modal extends BaseComponent {
       if (document !== event.target &&
           this._element !== event.target &&
           !this._element.contains(event.target)) {
-        this._element.focus()
+        const elements = SelectorEngine.focusableChildren(this._element)
+        if (elements.length === 0) {
+          this._element.focus()
+        } else if (this._lastTabNavDirection === TAB_NAV_BACKWARD) {
+          elements[elements.length - 1].focus()
+        } else {
+          // Acts as a catch for forward navigation, or if no keyboard navigation has occured
+          elements[0].focus()
+        }
       }
     })
+  }
+
+  _setTabNavEvent() {
+    if (this._isShown) {
+      EventHandler.on(document, EVENT_KEYDOWN_TAB, event => {
+        if (event.key !== TAB_KEY) {
+          return
+        }
+
+        this._lastTabNavDirection = event.shiftKey ? TAB_NAV_BACKWARD : TAB_NAV_FORWARD
+      })
+    } else {
+      EventHandler.off(document, EVENT_KEYDOWN_TAB)
+    }
   }
 
   _setEscapeEvent() {

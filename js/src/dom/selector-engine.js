@@ -69,6 +69,12 @@ const SelectorEngine = {
     }
 
     return []
+  },
+
+  focusableChildren(element) {
+    // POC, this is a small subset of focusable elements, sometimes being wrong.
+    // There are edge cases it misses (visibility, disabled, etc)
+    return this.find('a, button, input, textarea, [tabindex]:not([tabindex="-1"])', element)
   }
 }
 
